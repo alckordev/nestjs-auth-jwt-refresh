@@ -1,0 +1,57 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  refreshTokens RefreshToken[]
+
+  @@map("users")
+  @@index([email])
+}
+
+model RefreshToken {
+  id        String    @id @default(cuid())
+  token     String    @unique
+  userId    String    @map("user_id")
+  user      User      @relation(fields: [userId], references: [id])
+  userAgent String    @map("user_agent")
+  ipAddress String    @map("ip_address")
+  expiresAt DateTime  @map("expires_at")
+  revokedAt DateTime? @map("revoked_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  @@map("refresh_tokens")
+  @@index([token])
+  @@index([userId])
+  @@index([expiresAt])
+  @@index([revokedAt])
+}
+
+model BlacklistedToken {
+  id            String   @id @default(cuid())
+  token         String   @unique
+  expiresAt     DateTime @map("expires_at")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  @@map("blacklisted_tokens")
+  @@index([token])
+  @@index([expiresAt])
+}
