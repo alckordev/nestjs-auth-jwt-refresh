@@ -7,6 +7,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { LocalStrategy } from './strategies/local.strategy';
 import { RefreshTokenService } from './refresh-token/refresh-token.service';
+import { BlacklistService } from './blacklist/blacklist.service';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { RefreshTokenService } from './refresh-token/refresh-token.service';
     LocalStrategy,
     ConfigService,
     RefreshTokenService,
+    BlacklistService,
   ],
   controllers: [AuthController],
 })

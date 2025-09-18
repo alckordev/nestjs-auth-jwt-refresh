@@ -16,7 +16,7 @@ export class RefreshTokenService {
     userId: string,
     userAgent?: string,
     ipAddress?: string,
-  ) {
+  ): Promise<string> {
     const refreshToken = crypto.randomBytes(64).toString('hex');
 
     const lookupHash = this.getLookupHash(refreshToken);
@@ -81,7 +81,7 @@ export class RefreshTokenService {
     };
   }
 
-  async revokeRefreshToken(refreshToken: string) {
+  async revokeRefreshToken(refreshToken: string): Promise<void> {
     const lookupHash = this.getLookupHash(refreshToken);
 
     const tokenRecord = await this.db.refreshToken.findFirst({
@@ -104,7 +104,7 @@ export class RefreshTokenService {
     await this.revokeToken(tokenRecord.id);
   }
 
-  async revokeAllUserTokens(userId: string) {
+  async revokeAllUserTokens(userId: string): Promise<void> {
     await this.db.refreshToken.updateMany({
       where: {
         userId,
@@ -114,19 +114,21 @@ export class RefreshTokenService {
     });
   }
 
-  async cleanupExpiredTokens() {
-    await this.db.refreshToken.deleteMany({
+  async cleanupExpiredTokens(): Promise<number> {
+    const result = await this.db.refreshToken.deleteMany({
       where: {
         expiresAt: { lt: new Date() },
       },
     });
+
+    return result.count;
   }
 
-  private getLookupHash(refreshToken: string) {
+  private getLookupHash(refreshToken: string): string {
     return crypto.createHash('sha256').update(refreshToken).digest('hex');
   }
 
-  private async revokeToken(tokenId: string) {
+  private async revokeToken(tokenId: string): Promise<void> {
     await this.db.refreshToken.update({
       where: { id: tokenId },
       data: { revokedAt: new Date() },
