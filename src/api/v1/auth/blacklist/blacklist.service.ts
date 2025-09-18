@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { DatabaseService } from '~/database/database.service';
-import { JwtPayload } from '../types/jwt-payload.type';
+import { JwtPayload } from '../types/jwt-payload';
 
 @Injectable()
 export class BlacklistService {
