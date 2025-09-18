@@ -1,12 +1,14 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { DatabaseService } from '~/database/database.service';
 import * as crypto from 'crypto';
 import * as bcrypt from 'bcrypt';
-import ms, { StringValue } from 'ms';
+import ms, { StringValue } from '~/lib/ms';
 
 @Injectable()
 export class RefreshTokenService {
+  private readonly logger = new Logger(RefreshTokenService.name);
+
   constructor(
     private readonly db: DatabaseService,
     private readonly config: ConfigService,
@@ -17,32 +19,36 @@ export class RefreshTokenService {
     userAgent?: string,
     ipAddress?: string,
   ): Promise<string> {
-    const refreshToken = crypto.randomBytes(64).toString('hex');
+    try {
+      const refreshToken = crypto.randomBytes(64).toString('hex');
 
-    const lookupHash = this.getLookupHash(refreshToken);
+      const lookupHash = this.getLookupHash(refreshToken);
 
-    const encryptedToken = await bcrypt.hash(refreshToken, 10);
+      const encryptedToken = await bcrypt.hash(refreshToken, 10);
 
-    const expiresAt = new Date();
-    const expirationMs = ms(
-      this.config.get<StringValue>('JWT_REFRESH_EXPIRES_IN', '7d'),
-    );
-    const expirationDays = Math.ceil(expirationMs / (1000 * 60 * 60 * 24));
+      const expiresAt = new Date();
+      const expirationMs = ms(
+        this.config.get<StringValue>('JWT_REFRESH_EXPIRES_IN', '7d'),
+      );
+      const expirationDays = Math.ceil(expirationMs / (1000 * 60 * 60 * 24));
 
-    expiresAt.setDate(expiresAt.getDate() + expirationDays);
+      expiresAt.setDate(expiresAt.getDate() + expirationDays);
 
-    await this.db.refreshToken.create({
-      data: {
-        userId,
-        token: encryptedToken,
-        lookupHash,
-        userAgent,
-        ipAddress,
-        expiresAt,
-      },
-    });
+      await this.db.refreshToken.create({
+        data: {
+          userId,
+          token: encryptedToken,
+          lookupHash,
+          userAgent,
+          ipAddress,
+          expiresAt,
+        },
+      });
 
-    return refreshToken;
+      return refreshToken;
+    } catch (error) {
+      this.logger.error(error);
+    }
   }
 
   async refreshAccessToken(refreshToken: string) {
@@ -58,7 +64,7 @@ export class RefreshTokenService {
     });
 
     if (!tokenRecord) {
-      throw new UnauthorizedException('Expired refresh token');
+      throw new UnauthorizedException('Invalid or expired refresh token');
     }
 
     const isValid = await bcrypt.compare(refreshToken, tokenRecord.token);

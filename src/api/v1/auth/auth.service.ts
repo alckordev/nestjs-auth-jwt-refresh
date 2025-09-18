@@ -1,15 +1,17 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { DatabaseService } from '~/database/database.service';
 import { RefreshTokenService } from './refresh-token/refresh-token.service';
 import { BlacklistService } from './blacklist/blacklist.service';
-import { User } from 'generated/prisma';
+import { Prisma, User } from 'generated/prisma';
 import * as bcrypt from 'bcrypt';
 import { JwtPayload } from './types/jwt-payload';
 import { TokenPair } from './types/token-pair';
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private readonly jwt: JwtService,
     private readonly db: DatabaseService,
@@ -52,7 +54,7 @@ export class AuthService {
   }
 
   async signUp(
-    data: any,
+    data: Prisma.UserCreateInput,
     userAgent?: string,
     ipAddress?: string,
   ): Promise<TokenPair> {
@@ -76,7 +78,11 @@ export class AuthService {
     return this.generateTokens(user, userAgent, ipAddress);
   }
 
-  async signIn(data: any, userAgent?: string, ipAddress?: string) {
+  async signIn(
+    data: { email: string; password: string },
+    userAgent?: string,
+    ipAddress?: string,
+  ) {
     const user = await this.validateUser(data.email, data.password);
 
     if (!user) {
