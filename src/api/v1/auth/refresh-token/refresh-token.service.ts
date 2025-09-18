@@ -1,0 +1,135 @@
+import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { DatabaseService } from '~/database/database.service';
+import * as crypto from 'crypto';
+import * as bcrypt from 'bcrypt';
+import ms, { StringValue } from 'ms';
+
+@Injectable()
+export class RefreshTokenService {
+  constructor(
+    private readonly db: DatabaseService,
+    private readonly config: ConfigService,
+  ) {}
+
+  async generateRefreshToken(
+    userId: string,
+    userAgent?: string,
+    ipAddress?: string,
+  ) {
+    const refreshToken = crypto.randomBytes(64).toString('hex');
+
+    const lookupHash = this.getLookupHash(refreshToken);
+
+    const encryptedToken = await bcrypt.hash(refreshToken, 10);
+
+    const expiresAt = new Date();
+    const expirationMs = ms(
+      this.config.get<StringValue>('JWT_REFRESH_EXPIRES_IN', '7d'),
+    );
+    const expirationDays = Math.ceil(expirationMs / (1000 * 60 * 60 * 24));
+
+    expiresAt.setDate(expiresAt.getDate() + expirationDays);
+
+    await this.db.refreshToken.create({
+      data: {
+        userId,
+        token: encryptedToken,
+        lookupHash,
+        userAgent,
+        ipAddress,
+        expiresAt,
+      },
+    });
+
+    return refreshToken;
+  }
+
+  async refreshAccessToken(refreshToken: string) {
+    const lookupHash = this.getLookupHash(refreshToken);
+
+    const tokenRecord = await this.db.refreshToken.findUnique({
+      where: {
+        lookupHash,
+        expiresAt: { gt: new Date() },
+        revokedAt: null,
+      },
+      include: { user: true },
+    });
+
+    if (!tokenRecord) {
+      throw new UnauthorizedException('Expired refresh token');
+    }
+
+    const isValid = await bcrypt.compare(refreshToken, tokenRecord.token);
+
+    if (!isValid) {
+      throw new UnauthorizedException('Invalid refresh token');
+    }
+
+    await this.revokeToken(tokenRecord.id);
+
+    const newRefreshToken = await this.generateRefreshToken(
+      tokenRecord.userId,
+      tokenRecord.userAgent,
+      tokenRecord.ipAddress,
+    );
+
+    return {
+      user: tokenRecord.user,
+      refreshToken: newRefreshToken,
+    };
+  }
+
+  async revokeRefreshToken(refreshToken: string) {
+    const lookupHash = this.getLookupHash(refreshToken);
+
+    const tokenRecord = await this.db.refreshToken.findFirst({
+      where: {
+        lookupHash,
+        revokedAt: null,
+      },
+    });
+
+    if (!tokenRecord) {
+      throw new UnauthorizedException('Refresh token not found');
+    }
+
+    const isValid = await bcrypt.compare(refreshToken, tokenRecord.token);
+
+    if (!isValid) {
+      throw new UnauthorizedException('Invalid refresh token');
+    }
+
+    await this.revokeToken(tokenRecord.id);
+  }
+
+  async revokeAllUserTokens(userId: string) {
+    await this.db.refreshToken.updateMany({
+      where: {
+        userId,
+        revokedAt: null,
+      },
+      data: { revokedAt: new Date() },
+    });
+  }
+
+  async cleanupExpiredTokens() {
+    await this.db.refreshToken.deleteMany({
+      where: {
+        expiresAt: { lt: new Date() },
+      },
+    });
+  }
+
+  private getLookupHash(refreshToken: string) {
+    return crypto.createHash('sha256').update(refreshToken).digest('hex');
+  }
+
+  private async revokeToken(tokenId: string) {
+    await this.db.refreshToken.update({
+      where: { id: tokenId },
+      data: { revokedAt: new Date() },
+    });
+  }
+}

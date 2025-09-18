@@ -28,18 +28,20 @@ model User {
 }
 
 model RefreshToken {
-  id        String    @id @default(cuid())
-  token     String    @unique
-  userId    String    @map("user_id")
-  user      User      @relation(fields: [userId], references: [id])
-  userAgent String    @map("user_agent")
-  ipAddress String    @map("ip_address")
-  expiresAt DateTime  @map("expires_at")
-  revokedAt DateTime? @map("revoked_at")
-  createdAt DateTime  @default(now()) @map("created_at")
+  id          String    @id @default(cuid())
+  token       String    @unique
+  lookupHash  String    @unique @map("lookup_hash")
+  userId      String    @map("user_id")
+  user        User      @relation(fields: [userId], references: [id])
+  userAgent   String    @map("user_agent")
+  ipAddress   String    @map("ip_address")
+  expiresAt   DateTime  @map("expires_at")
+  revokedAt   DateTime? @map("revoked_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
 
   @@map("refresh_tokens")
   @@index([token])
+  @@index([lookupHash])
   @@index([userId])
   @@index([expiresAt])
   @@index([revokedAt])
@@ -55,3 +57,5 @@ model BlacklistedToken {
   @@index([token])
   @@index([expiresAt])
 }
+
+
