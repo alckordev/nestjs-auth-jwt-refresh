@@ -26,13 +26,12 @@ export class RefreshTokenService {
 
       const encryptedToken = await bcrypt.hash(refreshToken, 10);
 
-      const expiresAt = new Date();
       const expirationMs = ms(
         this.config.get<StringValue>('JWT_REFRESH_EXPIRES_IN', '7d'),
       );
-      const expirationDays = Math.ceil(expirationMs / (1000 * 60 * 60 * 24));
+      const expiresAt = new Date(Date.now() + expirationMs);
 
-      expiresAt.setDate(expiresAt.getDate() + expirationDays);
+      this.logger.debug(`Expire at: ${expiresAt}`);
 
       await this.db.refreshToken.create({
         data: {
