@@ -3,7 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { DatabaseService } from '~/database/database.service';
 import * as crypto from 'crypto';
 import * as bcrypt from 'bcrypt';
-import ms, { StringValue } from '~/lib/ms';
+import ms, { StringValue } from '@iscodex/ms-parser';
 
 @Injectable()
 export class RefreshTokenService {

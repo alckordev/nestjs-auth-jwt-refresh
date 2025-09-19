@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@iscodex/ms-parser':
+        specifier: ^1.0.2
+        version: 1.0.2
       '@nestjs/common':
         specifier: ^10.0.0
         version: 10.4.20(class-transformer@0.5.1)(class-validator@0.14.2)(reflect-metadata@0.2.2)(rxjs@7.8.2)
@@ -363,6 +366,10 @@ packages:
   '@isaacs/cliui@8.0.2':
     resolution: {integrity: sha512-O8jcjabXaleOG9DQ0+ARXWZBTfnP4WNAqzuiJK7ll44AmxGKv/J2M4TPjxjY3znBCfvBXFzucm1twdyFybFqEA==}
     engines: {node: '>=12'}
+
+  '@iscodex/ms-parser@1.0.2':
+    resolution: {integrity: sha512-OiZOX7L3G7JHHLucTgWIABieZlotwEsif0lojhUxG3H1Vok8+T8z4dSYTkLmquzl72HuaMgfUWVb+zFGJe9Z4Q==}
+    engines: {node: '>=20.0.0'}
 
   '@istanbuljs/load-nyc-config@1.1.0':
     resolution: {integrity: sha512-VjeHSlIzpv/NyD3N0YuHfXOPDIixcA1q2ZV98wsMqcYlPmv2n3Yb2lYP9XMElnaFVXg5A7YLTeLu6V84uQDjmQ==}
@@ -3397,6 +3404,8 @@ snapshots:
       strip-ansi-cjs: strip-ansi@6.0.1
       wrap-ansi: 8.1.0
       wrap-ansi-cjs: wrap-ansi@7.0.0
+
+  '@iscodex/ms-parser@1.0.2': {}
 
   '@istanbuljs/load-nyc-config@1.1.0':
     dependencies:
